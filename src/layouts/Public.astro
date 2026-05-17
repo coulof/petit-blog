@@ -1,0 +1,102 @@
+---
+interface Props {
+  title?: string;
+}
+const { title = 'Le blog de Robin' } = Astro.props;
+---
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400;9..144,600;9..144,800&family=Newsreader:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #e8ff00;
+      --paper: #0a0a0a;
+      --paper-soft: #111111;
+      --accent: #ffe600;
+      --rule: #2a2a00;
+      --muted: #9aaa00;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 19px;
+      line-height: 1.65;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(232,255,0,0.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(255,230,0,0.04) 0%, transparent 50%);
+    }
+    .wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem 6rem;
+    }
+    header.masthead {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 1.5rem;
+      margin-bottom: 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    header.masthead a.brand {
+      font-family: 'Fraunces', serif;
+      font-weight: 800;
+      font-size: 1.8rem;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      text-decoration: none;
+      font-variation-settings: "SOFT" 100;
+    }
+    header.masthead a.brand:hover { color: var(--accent); }
+    header.masthead .subtitle {
+      font-style: italic;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    h1, h2 {
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      font-variation-settings: "SOFT" 50;
+    }
+    footer.bottom {
+      margin-top: 5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--rule);
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      font-style: italic;
+    }
+    footer.bottom a { color: var(--muted); }
+  </style>
+  <slot name="head" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="masthead">
+      <a href="/" class="brand">Le blog de Robin</a>
+      <span class="subtitle">depuis la chambre</span>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="bottom">
+      Écrit à la main · <a href="/admin">admin</a>
+    </footer>
+  </div>
+</body>
+</html>

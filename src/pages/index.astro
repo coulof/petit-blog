@@ -1,0 +1,56 @@
+---
+import Public from '../layouts/Public.astro';
+import { listPosts, formatDate } from '../lib/db';
+
+const env = Astro.locals.runtime.env;
+const posts = await listPosts(env.DB);
+---
+<Public>
+  {posts.length === 0 && (
+    <p style="color: var(--muted); font-style: italic; text-align: center; padding: 3rem 0;">
+      Rien n'a encore été écrit ici. Bientôt&nbsp;!
+    </p>
+  )}
+
+  <div class="entries">
+    {posts.map(post => (
+      <article>
+        <a href={`/${post.slug}`} class="entry-link">
+          <h2>{post.title}</h2>
+          <time>{formatDate(post.created_at)}</time>
+        </a>
+        <div class="content" set:html={post.content_html} />
+      </article>
+    ))}
+  </div>
+</Public>
+
+<style>
+  .entries { margin: 0; }
+  article {
+    padding: 1.75rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  article:first-child { padding-top: 0; }
+  article:last-child { border-bottom: none; }
+  .entry-link {
+    text-decoration: none;
+    display: block;
+    color: var(--ink);
+  }
+  .entry-link h2 {
+    margin: 0 0 0.3rem;
+    font-size: 1.6rem;
+    transition: color 0.15s ease;
+  }
+  .entry-link:hover h2 { color: var(--accent); }
+  time {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-style: italic;
+    letter-spacing: 0.02em;
+  }
+  .content {
+    margin-top: 1rem;
+  }
+</style>

@@ -1,0 +1,65 @@
+---
+import Public from '../layouts/Public.astro';
+import { getPost, formatDate } from '../lib/db';
+
+const { slug } = Astro.params;
+const env = Astro.locals.runtime.env;
+const post = slug ? await getPost(env.DB, slug) : null;
+
+if (!post) {
+  return new Response('Article introuvable', { status: 404 });
+}
+---
+<Public title={post.title}>
+  <article>
+    <header class="post-head">
+      <h1>{post.title}</h1>
+      <time>{formatDate(post.created_at)}</time>
+    </header>
+    <div class="post-body" set:html={post.content_html} />
+  </article>
+  <p style="margin-top: 3rem;"><a href="/">← retour</a></p>
+</Public>
+
+<style is:global>
+  .post-head { margin-bottom: 2.5rem; }
+  .post-head h1 {
+    font-size: 2.6rem;
+    margin: 0 0 0.5rem;
+    font-variation-settings: "SOFT" 30;
+  }
+  .post-head time {
+    color: var(--muted);
+    font-style: italic;
+    font-size: 0.95rem;
+  }
+  .post-body h1, .post-body h2 {
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+  }
+  .post-body h1 { font-size: 1.8rem; }
+  .post-body h2 { font-size: 1.4rem; }
+  .post-body p { margin: 0 0 1.2rem; }
+  .post-body blockquote {
+    border-left: 3px solid var(--accent);
+    margin: 1.5rem 0;
+    padding: 0.2rem 0 0.2rem 1.2rem;
+    font-style: italic;
+    color: var(--muted);
+  }
+  .post-body ul, .post-body ol { padding-left: 1.5rem; }
+  .post-body li { margin-bottom: 0.4rem; }
+  .post-body pre {
+    background: var(--paper-soft);
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.9rem;
+  }
+  .post-body code {
+    background: var(--paper-soft);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+</style>

@@ -1,0 +1,306 @@
+---
+import { checkAuth, listPosts, formatDate } from '../../lib/db';
+
+const env = Astro.locals.runtime.env;
+const isAuth = checkAuth(Astro.request, env.AUTH_KEY);
+
+// Form login submission
+if (Astro.request.method === 'POST' && !isAuth) {
+  const form = await Astro.request.formData();
+  const key = form.get('key')?.toString() || '';
+  if (key === env.AUTH_KEY) {
+    return new Response(null, {
+      status: 303,
+      headers: {
+        'Location': '/admin',
+        // cookie 1 an, HttpOnly pour éviter accès JS, SameSite Strict
+        'Set-Cookie': `petit_blog_auth=${encodeURIComponent(env.AUTH_KEY)}; Path=/; Max-Age=31536000; HttpOnly; Secure; SameSite=Strict`
+      }
+    });
+  }
+  return Astro.redirect('/admin?err=1');
+}
+
+const posts = isAuth ? await listPosts(env.DB) : [];
+const err = Astro.url.searchParams.get('err');
+---
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin · Le blog de Robin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;800&family=Newsreader:wght@400;500&display=swap" rel="stylesheet">
+  {isAuth && (
+    <>
+      <link rel="stylesheet" href="https://unpkg.com/trix@2.1.15/dist/trix.css">
+      <script type="text/javascript" src="https://unpkg.com/trix@2.1.15/dist/trix.umd.min.js"></script>
+    </>
+  )}
+  <style>
+    :root {
+      --ink: #1a1612;
+      --paper: #f5efe4;
+      --paper-soft: #ebe3d4;
+      --accent: #c63d2f;
+      --rule: #c9bda6;
+      --muted: #6b6256;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 17px;
+      line-height: 1.5;
+      min-height: 100vh;
+      background-image:
+        repeating-linear-gradient(transparent 0, transparent 31px, rgba(198,61,47,0.06) 32px);
+    }
+    .container { max-width: 760px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+    header.admin-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 1rem;
+      margin-bottom: 2.5rem;
+    }
+    header.admin-head h1 {
+      font-family: 'Fraunces', serif;
+      font-weight: 800;
+      margin: 0;
+      font-size: 1.5rem;
+      letter-spacing: -0.02em;
+    }
+    header.admin-head a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+    header.admin-head a:hover { color: var(--accent); }
+
+    /* Login */
+    .login {
+      max-width: 360px;
+      margin: 4rem auto;
+      background: white;
+      padding: 2.5rem 2rem;
+      border: 1px solid var(--rule);
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+    .login h2 {
+      font-family: 'Fraunces', serif;
+      margin: 0 0 1.5rem;
+      font-size: 1.4rem;
+    }
+    .login input[type=password] {
+      width: 100%;
+      padding: 0.75rem;
+      font-family: inherit;
+      font-size: 1rem;
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--ink);
+    }
+    .login input[type=password]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .err { color: var(--accent); font-style: italic; margin: 0.75rem 0 0; font-size: 0.9rem; }
+
+    /* Editor form */
+    .editor-form { background: white; padding: 2rem; border: 1px solid var(--rule); box-shadow: 4px 4px 0 var(--ink); margin-bottom: 3rem; }
+    .editor-form label {
+      display: block;
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .editor-form input[type=text] {
+      width: 100%;
+      padding: 0.75rem;
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      font-size: 1.5rem;
+      border: none;
+      border-bottom: 1px solid var(--rule);
+      background: transparent;
+      color: var(--ink);
+      margin-bottom: 2rem;
+    }
+    .editor-form input[type=text]:focus { outline: none; border-bottom-color: var(--accent); }
+    trix-editor {
+      min-height: 280px;
+      border: 1px solid var(--rule);
+      padding: 1rem;
+      background: var(--paper);
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+    trix-toolbar {
+      background: var(--paper-soft);
+      border: 1px solid var(--rule);
+      border-bottom: none;
+      padding: 0.5rem;
+    }
+    .actions { margin-top: 1.5rem; display: flex; gap: 0.75rem; }
+
+    button, .btn {
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.7rem 1.4rem;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: all 0.1s ease;
+    }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink);
+    }
+    .btn-ghost:hover { background: var(--paper-soft); color: var(--ink); border-color: var(--ink); }
+
+    /* Existing posts list */
+    .existing h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.2rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 1rem;
+    }
+    .existing ul { list-style: none; padding: 0; margin: 0; }
+    .existing li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 0;
+      border-bottom: 1px dashed var(--rule);
+    }
+    .existing .post-info { flex: 1; }
+    .existing .post-title { font-weight: 500; }
+    .existing .post-meta { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+    .existing form { display: inline; }
+    .existing button.del {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.75rem;
+      background: transparent;
+      color: var(--muted);
+      border-color: var(--rule);
+    }
+    .existing button.del:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .toast {
+      position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      background: var(--ink); color: var(--paper); padding: 0.75rem 1.5rem;
+      font-style: italic; box-shadow: 3px 3px 0 var(--accent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="admin-head">
+      <h1>Coulisses · Le blog de Robin</h1>
+      <a href="/">← voir le blog</a>
+    </header>
+
+    {!isAuth ? (
+      <div class="login">
+        <h2>Mot de passe</h2>
+        <form method="POST">
+          <input type="password" name="key" required autofocus placeholder="·····" />
+          {err && <p class="err">Hmm, ce n'est pas le bon mot de passe.</p>}
+          <div class="actions">
+            <button type="submit">Entrer</button>
+          </div>
+        </form>
+      </div>
+    ) : (
+      <>
+        <form class="editor-form" id="postForm">
+          <label for="title">Titre</label>
+          <input type="text" id="title" name="title" required placeholder="Aujourd'hui j'ai vu..." />
+
+          <label for="content">Histoire</label>
+          <input id="content" type="hidden" name="content" />
+          <trix-editor input="content"></trix-editor>
+
+          <div class="actions">
+            <button type="submit">Publier</button>
+            <button type="reset" class="btn-ghost">Effacer</button>
+          </div>
+        </form>
+
+        <div class="existing">
+          <h2>Articles publiés</h2>
+          {posts.length === 0 ? (
+            <p style="color: var(--muted); font-style: italic;">Aucun pour le moment.</p>
+          ) : (
+            <ul>
+              {posts.map(p => (
+                <li>
+                  <div class="post-info">
+                    <div class="post-title">{p.title}</div>
+                    <div class="post-meta">{formatDate(p.created_at)} · /{p.slug}</div>
+                  </div>
+                  <form method="POST" action={`/api/delete?id=${p.id}`} onsubmit="return confirm('Supprimer cet article ?')">
+                    <button type="submit" class="del">supprimer</button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </>
+    )}
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  {isAuth && (
+    <script is:inline>
+      const form = document.getElementById('postForm');
+      const toast = document.getElementById('toast');
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+      }
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('title').value.trim();
+        const content = document.getElementById('content').value.trim();
+        if (!title || !content) {
+          showToast('Il manque quelque chose...');
+          return;
+        }
+        const res = await fetch('/api/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content })
+        });
+        if (res.ok) {
+          showToast('Publié ! ✨');
+          setTimeout(() => location.reload(), 800);
+        } else {
+          showToast('Quelque chose a raté...');
+        }
+      });
+    </script>
+  )}
+</body>
+</html>

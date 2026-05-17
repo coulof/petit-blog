@@ -1,0 +1,14 @@
+name = "petit-blog"
+main = "./dist/_worker.js/index.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+assets = { directory = "./dist", binding = "ASSETS" }
+
+[[d1_databases]]
+binding = "DB"
+database_name = "petit-blog-db"
+database_id = "3d7dd0fc-ee4e-4fa6-b63b-72c5ee0a5d96"
+
+# Le mot de passe admin se met via:
+#   wrangler secret put AUTH_KEY
