@@ -37,8 +37,22 @@ const err = Astro.url.searchParams.get('err');
       <script type="text/javascript" src="https://unpkg.com/trix@2.1.15/dist/trix.umd.min.js"></script>
     </>
   )}
+  <script is:inline>
+    (function() {
+      const t = localStorage.getItem('theme');
+      if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    })();
+  </script>
   <style>
     :root {
+      --ink: #e8ff00;
+      --paper: #0a0a0a;
+      --paper-soft: #111111;
+      --accent: #ffe600;
+      --rule: #2a2a00;
+      --muted: #9aaa00;
+    }
+    [data-theme="light"] {
       --ink: #1a1612;
       --paper: #f5efe4;
       --paper-soft: #ebe3d4;
@@ -55,8 +69,7 @@ const err = Astro.url.searchParams.get('err');
       font-size: 17px;
       line-height: 1.5;
       min-height: 100vh;
-      background-image:
-        repeating-linear-gradient(transparent 0, transparent 31px, rgba(198,61,47,0.06) 32px);
+      transition: background 0.2s, color 0.2s;
     }
     .container { max-width: 760px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
     header.admin-head {
@@ -81,12 +94,24 @@ const err = Astro.url.searchParams.get('err');
       font-style: italic;
     }
     header.admin-head a:hover { color: var(--accent); }
+    #theme-toggle {
+      background: none;
+      border: 1px solid var(--rule);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 0.25rem 0.4rem;
+      border-radius: 4px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    #theme-toggle:hover { border-color: var(--ink); color: var(--ink); }
 
     /* Login */
     .login {
       max-width: 360px;
       margin: 4rem auto;
-      background: white;
+      background: var(--paper-soft);
       padding: 2.5rem 2rem;
       border: 1px solid var(--rule);
       box-shadow: 4px 4px 0 var(--ink);
@@ -112,7 +137,7 @@ const err = Astro.url.searchParams.get('err');
     .err { color: var(--accent); font-style: italic; margin: 0.75rem 0 0; font-size: 0.9rem; }
 
     /* Editor form */
-    .editor-form { background: white; padding: 2rem; border: 1px solid var(--rule); box-shadow: 4px 4px 0 var(--ink); margin-bottom: 3rem; }
+    .editor-form { background: var(--paper-soft); padding: 2rem; border: 1px solid var(--rule); box-shadow: 4px 4px 0 var(--ink); margin-bottom: 3rem; }
     .editor-form label {
       display: block;
       font-family: 'Fraunces', serif;
@@ -216,6 +241,7 @@ const err = Astro.url.searchParams.get('err');
     <header class="admin-head">
       <h1>Coulisses · Le blog de Robin</h1>
       <a href="/">← voir le blog</a>
+      <button id="theme-toggle" aria-label="Changer le thème">☀️</button>
     </header>
 
     {!isAuth ? (
@@ -270,6 +296,28 @@ const err = Astro.url.searchParams.get('err');
 
     <div class="toast" id="toast"></div>
   </div>
+
+  <script is:inline>
+    (function() {
+      const btn = document.getElementById('theme-toggle');
+      const html = document.documentElement;
+      function apply(theme) {
+        if (theme === 'light') {
+          html.setAttribute('data-theme', 'light');
+          btn.textContent = '🌙';
+        } else {
+          html.removeAttribute('data-theme');
+          btn.textContent = '☀️';
+        }
+      }
+      apply(localStorage.getItem('theme') ?? 'dark');
+      btn.addEventListener('click', function() {
+        const next = html.hasAttribute('data-theme') ? 'dark' : 'light';
+        localStorage.setItem('theme', next);
+        apply(next);
+      });
+    })();
+  </script>
 
   {isAuth && (
     <script is:inline>
